@@ -78,6 +78,16 @@ def _normalize_ticker_df(ticker_df, ticker=None):
     return ticker_df
 
 
+def _looks_like_csv(text: str) -> bool:
+    lowered = text.strip().lower()
+    if ';' not in lowered:
+        return False
+    if 'date;' in lowered or 'symbole;' in lowered or 'cloture' in lowered:
+        return True
+    lines = [line for line in lowered.splitlines() if line.strip()]
+    return len(lines) >= 2 and ';' in lines[0]
+
+
 def _scrape_ticker_range(session, headers, ticker, range_start, range_end):
     """Download OHLCV for one ticker between range_start and range_end (inclusive)."""
     download_url = f'https://www.ilboursa.com/marches/download/{ticker}'
@@ -104,13 +114,20 @@ def _scrape_ticker_range(session, headers, ticker, range_start, range_end):
         }
         time.sleep(0.1)
         r_post = session.post(download_url, data=payload, headers=headers, timeout=60)
+        content_type = r_post.headers.get('Content-Type', '')
 
-        if 'text/csv' in r_post.headers.get('Content-Type', ''):
-            df_chunk = pd.read_csv(io.StringIO(r_post.text), sep=';')
-            if not df_chunk.empty:
-                ticker_dfs.append(df_chunk)
-                consecutive_empty = 0
-            else:
+        if ('text/csv' in content_type
+                or 'application/octet-stream' in content_type
+                or 'application/vnd.ms-excel' in content_type
+                or _looks_like_csv(r_post.text)):
+            try:
+                df_chunk = pd.read_csv(io.StringIO(r_post.text), sep=';')
+                if not df_chunk.empty:
+                    ticker_dfs.append(df_chunk)
+                    consecutive_empty = 0
+                else:
+                    consecutive_empty += 1
+            except Exception:
                 consecutive_empty += 1
         else:
             consecutive_empty += 1
