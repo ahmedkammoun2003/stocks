@@ -62,11 +62,20 @@ def refresh_market_data(years: int = 30) -> pd.DataFrame:
 
 
 def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty or "Ticker" not in df.columns:
+        print("Warning: no stock data available after refresh.")
+        return df.copy()
+
     ticker_counts = df["Ticker"].value_counts()
     keep = ticker_counts[ticker_counts >= MIN_OBS].index
     dropped = set(ticker_counts.index) - set(keep)
     if dropped:
         print(f"Dropping thin-history tickers: {sorted(dropped)}")
+
+    if len(keep) == 0:
+        print("Warning: no tickers have enough history for feature engineering.")
+        return df.iloc[0:0].copy()
+
     df = df[df["Ticker"].isin(keep)].copy()
     print("Engineering features (Fourier, HMM, technicals)...")
     return preprocess_features(df)

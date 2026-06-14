@@ -168,6 +168,9 @@ def preprocess_features(df):
     """
     Applies feature engineering for each stock separately.
     """
+    if df.empty:
+        return df.copy()
+
     processed_dfs = []
     for ticker, group in df.groupby('Ticker'):
         group = group.copy()
@@ -179,6 +182,11 @@ def preprocess_features(df):
             group[f'Close_Lag_{i}'] = group['Close'].shift(i)
 
         group.dropna(inplace=True)
-        processed_dfs.append(group)
+        if not group.empty:
+            processed_dfs.append(group)
+
+    if not processed_dfs:
+        print("Warning: no feature-engineered stock groups were produced.")
+        return df.iloc[0:0].copy()
 
     return pd.concat(processed_dfs, ignore_index=True)
