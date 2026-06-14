@@ -46,10 +46,18 @@ def refresh_market_data(years: int = 30) -> pd.DataFrame:
     """Download / incrementally update BVMT quotes through ilboursa (existing loader)."""
     print("Fetching latest BVMT market data (ilboursa.com)...")
     df = load_bvmt_stocks(years=years)
-    print(
-        f"Data: {len(df)} rows, {df['Ticker'].nunique()} tickers, "
-        f"{df['Date'].min().date()} → {df['Date'].max().date()}"
-    )
+    if not isinstance(df, pd.DataFrame) or df.empty or 'Date' not in df.columns:
+        print("Warning: market data fetch returned no usable rows.")
+        return pd.DataFrame(columns=['Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+    try:
+        min_date = pd.to_datetime(df['Date']).min()
+        max_date = pd.to_datetime(df['Date']).max()
+        print(
+            f"Data: {len(df)} rows, {df['Ticker'].nunique()} tickers, "
+            f"{min_date.date()} → {max_date.date()}"
+        )
+    except Exception:
+        print(f"Data: {len(df)} rows, {df['Ticker'].nunique()} tickers, invalid Date column")
     return df
 
 
