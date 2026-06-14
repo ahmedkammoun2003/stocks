@@ -175,7 +175,13 @@ def rank_stocks(
 
     Returns a DataFrame sorted by score descending.
     """
+    if df.empty or "Date" not in df.columns:
+        return pd.DataFrame()
+
     pivoted, vol_pivoted = build_pivoted(df)
+    if pivoted.empty:
+        return pd.DataFrame()
+
     all_cols = list(pivot_columns or pivoted.columns)
     indicators = build_market_indicators(pivoted, vol_pivoted)
 

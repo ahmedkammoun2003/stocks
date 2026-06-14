@@ -102,6 +102,10 @@ def run_predict(
 
     df = prepare_dataframe(df)
 
+    if df.empty:
+        print("Error: no market data available after refresh; cannot rank stocks.")
+        return pd.DataFrame(columns=["Rank", "Ticker", "Score", "XGB_5d_pred", "RL_weight", "Eligible"])
+
     pivot_columns = meta.get("pivot_columns")
     if not pivot_columns:
         pivot_columns = sorted(df["Ticker"].unique())
