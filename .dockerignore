@@ -1,0 +1,7 @@
+venv/
+AppDir/
+dist/
+build/
+*.AppImage
+tunisian_stocks_30y.csv
+__pycache__/

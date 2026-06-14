@@ -1,0 +1,20 @@
+{
+  "cycle": 0,
+  "saved_at": "2026-06-01T09:04:26.003729",
+  "train_start": "2020-01-01T00:00:00",
+  "val_start": "2021-01-01T00:00:00",
+  "test_start": "2022-01-01T00:00:00",
+  "test_end": "2023-01-01T00:00:00",
+  "pivot_columns": [
+    "TST",
+    "OTHER"
+  ],
+  "xgb_tickers": [
+    "TST"
+  ],
+  "xgb_val_mse": {
+    "TST": 0.01
+  },
+  "has_rl": false,
+  "risk_history": {}
+}

@@ -1,0 +1,16 @@
+pandas
+numpy
+xgboost
+torch
+hmmlearn
+scipy
+stable-baselines3
+gymnasium
+scikit-learn
+matplotlib
+beautifulsoup4
+lxml
+tqdm
+rich
+psutil
+requests

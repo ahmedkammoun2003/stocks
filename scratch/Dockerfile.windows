@@ -1,0 +1,17 @@
+FROM tobix/pywine:3.10
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y gcc g++ libc6-dev
+
+WORKDIR /src
+
+# Copy project files
+COPY . /src
+
+# Install pip requirements in wine
+RUN wine pip install pyinstaller
+RUN wine pip install torch --index-url https://download.pytorch.org/whl/cpu
+RUN wine pip install -r requirements.txt
+
+# Run pyinstaller
+CMD ["wine", "pyinstaller", "--onefile", "--name", "stocks-windows", "main.py"]
