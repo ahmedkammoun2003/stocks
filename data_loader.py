@@ -36,11 +36,20 @@ def _fetch_ticker_list(session, headers):
                 tickers.append(href.split('_')[-1])
         tickers = sorted(set(tickers))
         tickers = [t for t in tickers if t not in EXCLUDED_TICKERS]
+        if not tickers:
+            print("Warning: parsed ticker list is empty. Falling back to major ticker list.")
+            return FALLBACK_TICKERS
         print(f"Successfully found {len(tickers)} active tickers on the exchange.")
         return tickers
     except Exception as e:
         print(f"Error fetching ticker list: {e}. Falling back to major list.")
         return FALLBACK_TICKERS
+
+
+def _empty_stock_df() -> pd.DataFrame:
+    return pd.DataFrame(columns=[
+        'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
+    ])
 
 
 def _normalize_ticker_df(ticker_df, ticker=None):
@@ -120,8 +129,12 @@ def _scrape_ticker_range(session, headers, ticker, range_start, range_end):
 
 def _merge_frames(frames):
     if not frames:
-        raise ValueError("Could not collect any historical stock data from the website.")
+        print("Warning: no stock frames to merge; returning empty DataFrame.")
+        return _empty_stock_df()
     final_df = pd.concat(frames, ignore_index=True)
+    if final_df.empty:
+        print("Warning: merged frames produced an empty DataFrame.")
+        return _empty_stock_df()
     final_df = (
         final_df
         .drop_duplicates(subset=['Ticker', 'Date'], keep='last')
@@ -129,6 +142,21 @@ def _merge_frames(frames):
         .reset_index(drop=True)
     )
     return final_df
+
+
+def _safe_save_cache(final_df, cache_file):
+    try:
+        final_df.to_csv(cache_file, index=False)
+        print(
+            f"\nCached {len(final_df)} rows, "
+            f"{final_df['Ticker'].nunique()} tickers, "
+            f"through {final_df['Date'].max().date()} → {cache_file}"
+        )
+    except (OSError, PermissionError) as exc:
+        print(
+            f"Warning: unable to write cache file {cache_file}: {exc}."
+            " Continuing with in-memory results only."
+        )
 
 
 def _full_scrape(session, headers, tickers, start_date, end_date, cache_file):
@@ -143,12 +171,11 @@ def _full_scrape(session, headers, tickers, start_date, end_date, cache_file):
             pass
 
     final_df = _merge_frames(full_df_list)
-    final_df.to_csv(cache_file, index=False)
-    print(
-        f"\nCached {len(final_df)} rows, "
-        f"{final_df['Ticker'].nunique()} tickers, "
-        f"through {final_df['Date'].max().date()} → {cache_file}"
-    )
+    if final_df.empty:
+        print("\nWarning: full scrape completed with no data; cache not updated.")
+        return final_df
+
+    _safe_save_cache(final_df, cache_file)
     return final_df
 
 
@@ -190,12 +217,7 @@ def _incremental_update(session, headers, df_cached, tickers, start_date, end_da
         updated_frames.append(df_cached[df_cached['Ticker'] == ticker])
 
     final_df = _merge_frames(updated_frames)
-    final_df.to_csv(cache_file, index=False)
-    print(
-        f"\nUpdated cache: {len(final_df)} rows, "
-        f"{final_df['Ticker'].nunique()} tickers, "
-        f"through {final_df['Date'].max().date()}"
-    )
+    _safe_save_cache(final_df, cache_file)
     return final_df
 
 
